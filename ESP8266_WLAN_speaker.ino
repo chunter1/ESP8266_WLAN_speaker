@@ -5,6 +5,8 @@
 // STABILITY NEEDS TO BE IMPROVED!!
 // CODE NEEDS CLEAN UP ASWELL :)
 //
+// Set CPU clock to be 160 MHz!
+//
 // The code provides a webserver listening on port 5522 for an 8-bit mono PCM data stream.
 // On pin IO3 (RXD) a pseudo 7-bit PWM is ouput.
 // This pin is setup as I2S interface and normally provides a 32 bit raw audio data stream.

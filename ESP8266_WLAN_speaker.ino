@@ -64,12 +64,19 @@
 // - buffer read index corrected (should fix occational distortions when streaming ends)
 // - added handling of client disconnect and timeout during buffering
 //
+// V8 (13.08.2017)
+// - added amp enable on GPIO15
+// - moved STATUS_LED_MODES enum to a .h file because of compiler problems
+//
 
+
+#include "Arduino.h"
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include "i2s.h"
+#include "StatusLedModes.h"
 
 extern "C" {
   #include "user_interface.h"
@@ -86,9 +93,10 @@ const uint16_t port = 5522;
 WiFiServer server(port);
 
 // valid buffer Sizes are e.g. 0x1000, 0x2000, 0x4000
-#define BUFFER_SIZE   0x4000
-#define ONBOARD_LED   2
-#define STATUS_LED    12
+#define BUFFER_SIZE    0x4000
+#define ONBOARD_LED    2
+#define STATUS_LED     12
+#define AMP_ENABLE_PIN 15
 
 uint8_t buffer8b[BUFFER_SIZE];
 uint16_t bufferPtrIn;
@@ -99,7 +107,7 @@ uint8_t OTA_update = 0;
 
 enum RAMP_DIRECTIONS { DOWN, UP };
 enum PWM_MODES { PWM_RESET, PWM_NORMAL, PWM_DIRECT };
-volatile enum STATUS_LED_MODES { WIFI_DISCONNECTED, WIFI_CONNECTED, STREAMING } statusLEDmode = WIFI_DISCONNECTED;
+volatile STATUS_LED_MODES statusLEDmode = WIFI_DISCONNECTED;
 
 // **************************************************
 // **************************************************
@@ -199,6 +207,9 @@ void setup()
 
   pinMode(ONBOARD_LED, OUTPUT);
   digitalWrite(ONBOARD_LED, HIGH);
+
+  pinMode(AMP_ENABLE_PIN, OUTPUT);
+  digitalWrite(AMP_ENABLE_PIN, LOW);
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) 
   {
@@ -350,6 +361,7 @@ inline void startStreaming(WiFiClient *client)
   bufferPtrOut = 0;
 
   setStatusLEDmode(STREAMING);
+  digitalWrite(AMP_ENABLE_PIN, HIGH);
 
   // ===================================================================================
   // fill buffer
@@ -372,7 +384,7 @@ inline void startStreaming(WiFiClient *client)
   
   // ===================================================================================
   // ramp-up PWM to 50% (=Vspeaker/2) to avoid "blops"  
-  
+
   rampPWM(UP);
   
   // ===================================================================================
@@ -399,10 +411,15 @@ inline void startStreaming(WiFiClient *client)
 
   } while (client->available() || (millis() < ultimeout) || (bufferPtrOut != bufferPtrIn));
 
+  // disabling the amplifier does not "plop", so it's better to do it before ramping down
+  digitalWrite(AMP_ENABLE_PIN, LOW);
+
   // ===================================================================================
   // ramp-down PWM to 0% (=0Vdc) to avoid "blops"
-
   rampPWM(DOWN);
+
+
+
 }
 
 // **************************************************

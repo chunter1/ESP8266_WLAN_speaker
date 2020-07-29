@@ -29,3 +29,7 @@ To "Install" you just have to unpack that archive somewhere. Now Navigate your c
 avconv -i gong.mp3 -f s32be -acodec pcm_u8 -ac 1 -ar 33000 tcp://192.168.1.100:5522
 
 Where the IP is the IP of your esp8266 and gong.mp3 the path to the music file.
+
+## Can't build sketch
+
+When you open the sketch Arduino might ask you to create the appropiate folder to use that sketch. You have to manually copy the StatusLedModes.h nexto wherever your sketch is located now, or it won't build
